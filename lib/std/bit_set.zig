@@ -8,26 +8,26 @@
 //!
 //! There are five variants defined here:
 //!
-//! IntegerBitSet:
+//! `IntegerBitSet`:
 //!   A bit set with static size, which is backed by a single integer.
 //!   This set is good for sets with a small size, but may generate
 //!   inefficient code for larger sets, especially in debug mode.
 //!
-//! ArrayBitSet:
-//!   A bit set with static size, which is backed by an array of usize.
+//! `ArrayBitSet`:
+//!   A bit set with static size, which is backed by an array of `usize`.
 //!   This set is good for sets with a larger size, but may use
 //!   more bytes than necessary if your set is small.
 //!
-//! StaticBitSet:
-//!   Picks either IntegerBitSet or ArrayBitSet depending on the requested
+//! `StaticBitSet`:
+//!   Picks either `IntegerBitSet` or `ArrayBitSet` depending on the requested
 //!   size.  The interfaces of these two types match exactly, except for fields.
 //!
-//! DynamicBitSet:
+//! `DynamicBitSet`:
 //!   A bit set with runtime-known size, backed by an allocated slice
-//!   of usize.
+//!   of `usize`.
 //!
-//! DynamicBitSetUnmanaged:
-//!   A variant of DynamicBitSet which does not store a pointer to its
+//! `DynamicBitSetUnmanaged`:
+//!   A variant of `DynamicBitSet` which does not store a pointer to its
 //!   allocator, in order to save space.
 
 const std = @import("std.zig");
@@ -83,8 +83,8 @@ pub fn IntegerBitSet(comptime size: u16) type {
             return bit_length;
         }
 
-        /// Returns true if the bit at the specified index
-        /// is present in the set, false otherwise.
+        /// Returns `true` if the bit at the specified index
+        /// is present in the set, `false` otherwise.
         pub fn isSet(self: Self, index: usize) bool {
             assert(index < bit_length);
             return (self.mask & maskBit(index)) != 0;
@@ -176,7 +176,7 @@ pub fn IntegerBitSet(comptime size: u16) type {
         }
 
         /// Finds the index of the first set bit.
-        /// If no bits are set, returns null.
+        /// If no bits are set, returns `null`.
         pub fn findFirstSet(self: Self) ?usize {
             const mask = self.mask;
             if (mask == 0) return null;
@@ -184,7 +184,7 @@ pub fn IntegerBitSet(comptime size: u16) type {
         }
 
         /// Finds the index of the first set bit, and unsets it.
-        /// If no bits are set, returns null.
+        /// If no bits are set, returns `null`.
         pub fn toggleFirstSet(self: *Self) ?usize {
             const mask = self.mask;
             if (mask == 0) return null;
@@ -193,19 +193,19 @@ pub fn IntegerBitSet(comptime size: u16) type {
             return index;
         }
 
-        /// Returns true iff every corresponding bit in both
+        /// Returns `true` iff every corresponding bit in both
         /// bit sets are the same.
         pub fn eql(self: Self, other: Self) bool {
             return bit_length == 0 or self.mask == other.mask;
         }
 
-        /// Returns true iff the first bit set is the subset
+        /// Returns `true` iff the first bit set is the subset
         /// of the second one.
         pub fn subsetOf(self: Self, other: Self) bool {
             return self.intersectWith(other).eql(self);
         }
 
-        /// Returns true iff the first bit set is the superset
+        /// Returns `true` iff the first bit set is the superset
         /// of the second one.
         pub fn supersetOf(self: Self, other: Self) bool {
             return other.subsetOf(self);
@@ -256,7 +256,7 @@ pub fn IntegerBitSet(comptime size: u16) type {
         }
 
         /// Iterates through the items in the set, according to the options.
-        /// The default options (.{}) will iterate indices of set bits in
+        /// The default options (`.{}`) will iterate indices of set bits in
         /// ascending order.  Modifications to the underlying bit set may
         /// or may not be observed by the iterator.
         pub fn iterator(self: *const Self, comptime options: IteratorOptions) Iterator(options) {
@@ -311,7 +311,7 @@ pub fn IntegerBitSet(comptime size: u16) type {
     };
 }
 
-/// A bit set with static size, which is backed by an array of usize.
+/// A bit set with static size, which is backed by an array of `usize`.
 /// This set is good for sets with a larger size, but may use
 /// more bytes than necessary if your set is small.
 pub fn ArrayBitSet(comptime MaskIntType: type, comptime size: usize) type {
@@ -341,7 +341,7 @@ pub fn ArrayBitSet(comptime MaskIntType: type, comptime size: usize) type {
 
     // Make sure the integer has no padding bits.
     // Those would be wasteful here and are probably a mistake by the user.
-    // This case may be hit with small powers of two, like u4.
+    // This case may be hit with small powers of two, like `u4`.
     if (@bitSizeOf(MaskIntType) != @sizeOf(MaskIntType) * byte_size) {
         var desired_bits = @sizeOf(MaskIntType) * byte_size;
         desired_bits = std.math.ceilPowerOfTwoAssert(usize, desired_bits);
@@ -398,8 +398,8 @@ pub fn ArrayBitSet(comptime MaskIntType: type, comptime size: usize) type {
             return bit_length;
         }
 
-        /// Returns true if the bit at the specified index
-        /// is present in the set, false otherwise.
+        /// Returns `true` if the bit at the specified index
+        /// is present in the set, `false` otherwise.
         pub fn isSet(self: Self, index: usize) bool {
             assert(index < bit_length);
             if (num_masks == 0) return false; // doesn't compile in this case
@@ -531,7 +531,7 @@ pub fn ArrayBitSet(comptime MaskIntType: type, comptime size: usize) type {
         }
 
         /// Finds the index of the first set bit.
-        /// If no bits are set, returns null.
+        /// If no bits are set, returns `null`.
         pub fn findFirstSet(self: Self) ?usize {
             var offset: usize = 0;
             const mask = for (self.masks) |mask| {
@@ -542,7 +542,7 @@ pub fn ArrayBitSet(comptime MaskIntType: type, comptime size: usize) type {
         }
 
         /// Finds the index of the first set bit, and unsets it.
-        /// If no bits are set, returns null.
+        /// If no bits are set, returns `null`.
         pub fn toggleFirstSet(self: *Self) ?usize {
             var offset: usize = 0;
             const mask = for (&self.masks) |*mask| {
@@ -554,7 +554,7 @@ pub fn ArrayBitSet(comptime MaskIntType: type, comptime size: usize) type {
             return offset + index;
         }
 
-        /// Returns true iff every corresponding bit in both
+        /// Returns `true` iff every corresponding bit in both
         /// bit sets are the same.
         pub fn eql(self: Self, other: Self) bool {
             var i: usize = 0;
@@ -565,13 +565,13 @@ pub fn ArrayBitSet(comptime MaskIntType: type, comptime size: usize) type {
             } else true;
         }
 
-        /// Returns true iff the first bit set is the subset
+        /// Returns `true` iff the first bit set is the subset
         /// of the second one.
         pub fn subsetOf(self: Self, other: Self) bool {
             return self.intersectWith(other).eql(self);
         }
 
-        /// Returns true iff the first bit set is the superset
+        /// Returns `true` iff the first bit set is the superset
         /// of the second one.
         pub fn supersetOf(self: Self, other: Self) bool {
             return other.subsetOf(self);
@@ -622,7 +622,7 @@ pub fn ArrayBitSet(comptime MaskIntType: type, comptime size: usize) type {
         }
 
         /// Iterates through the items in the set, according to the options.
-        /// The default options (.{}) will iterate indices of set bits in
+        /// The default options (`.{}`) will iterate indices of set bits in
         /// ascending order.  Modifications to the underlying bit set may
         /// or may not be observed by the iterator.
         pub fn iterator(self: *const Self, comptime options: IteratorOptions) Iterator(options) {
@@ -646,7 +646,7 @@ pub fn ArrayBitSet(comptime MaskIntType: type, comptime size: usize) type {
 }
 
 /// A bit set with runtime-known size, backed by an allocated slice
-/// of usize.  The allocator must be tracked externally by the user.
+/// of `usize`.  The allocator must be tracked externally by the user.
 pub const DynamicBitSetUnmanaged = struct {
     const Self = @This();
 
@@ -675,7 +675,7 @@ pub const DynamicBitSetUnmanaged = struct {
     const empty_masks_ptr = empty_masks_data[1..2];
 
     /// Creates a bit set with no elements present.
-    /// If bit_length is not zero, deinit must eventually be called.
+    /// If `bit_length` is not zero, `deinit` must eventually be called.
     pub fn initEmpty(allocator: Allocator, bit_length: usize) !Self {
         var self = Self{};
         try self.resize(allocator, bit_length, false);
@@ -683,16 +683,16 @@ pub const DynamicBitSetUnmanaged = struct {
     }
 
     /// Creates a bit set with all elements present.
-    /// If bit_length is not zero, deinit must eventually be called.
+    /// If `bit_length` is not zero, `deinit` must eventually be called.
     pub fn initFull(allocator: Allocator, bit_length: usize) !Self {
         var self = Self{};
         try self.resize(allocator, bit_length, true);
         return self;
     }
 
-    /// Resizes to a new bit_length.  If the new length is larger
+    /// Resizes to a new `bit_length`.  If the new length is larger
     /// than the old length, fills any added bits with `fill`.
-    /// If new_len is not zero, deinit must eventually be called.
+    /// If `new_len` is not zero, `deinit` must eventually be called.
     pub fn resize(self: *@This(), allocator: Allocator, new_len: usize, fill: bool) !void {
         const old_len = self.bit_length;
 
@@ -755,7 +755,7 @@ pub const DynamicBitSetUnmanaged = struct {
 
     /// deinitializes the array and releases its memory.
     /// The passed allocator must be the same one used for
-    /// init* or resize in the past.
+    /// `init*` or `resize` in the past.
     pub fn deinit(self: *Self, allocator: Allocator) void {
         self.resize(allocator, 0, false) catch unreachable;
     }
@@ -774,8 +774,8 @@ pub const DynamicBitSetUnmanaged = struct {
         return self.bit_length;
     }
 
-    /// Returns true if the bit at the specified index
-    /// is present in the set, false otherwise.
+    /// Returns `true` if the bit at the specified index
+    /// is present in the set, `false` otherwise.
     pub fn isSet(self: Self, index: usize) bool {
         assert(index < self.bit_length);
         return (self.masks[maskIndex(index)] & maskBit(index)) != 0;
@@ -866,7 +866,7 @@ pub const DynamicBitSetUnmanaged = struct {
 
     /// Flips all bits in this bit set which are present
     /// in the toggles bit set.  Both sets must have the
-    /// same bit_length.
+    /// same `bit_length`.
     pub fn toggleSet(self: *Self, toggles: Self) void {
         assert(toggles.bit_length == self.bit_length);
         const num_masks = numMasks(self.bit_length);
@@ -894,7 +894,7 @@ pub const DynamicBitSetUnmanaged = struct {
     /// Performs a union of two bit sets, and stores the
     /// result in the first one.  Bits in the result are
     /// set if the corresponding bits were set in either input.
-    /// The two sets must both be the same bit_length.
+    /// The two sets must both be the same `bit_length`.
     pub fn setUnion(self: *Self, other: Self) void {
         assert(other.bit_length == self.bit_length);
         const num_masks = numMasks(self.bit_length);
@@ -906,7 +906,7 @@ pub const DynamicBitSetUnmanaged = struct {
     /// Performs an intersection of two bit sets, and stores
     /// the result in the first one.  Bits in the result are
     /// set if the corresponding bits were set in both inputs.
-    /// The two sets must both be the same bit_length.
+    /// The two sets must both be the same `bit_length`.
     pub fn setIntersection(self: *Self, other: Self) void {
         assert(other.bit_length == self.bit_length);
         const num_masks = numMasks(self.bit_length);
@@ -916,7 +916,7 @@ pub const DynamicBitSetUnmanaged = struct {
     }
 
     /// Finds the index of the first set bit.
-    /// If no bits are set, returns null.
+    /// If no bits are set, returns `null`.
     pub fn findFirstSet(self: Self) ?usize {
         var offset: usize = 0;
         var mask = self.masks;
@@ -929,7 +929,7 @@ pub const DynamicBitSetUnmanaged = struct {
     }
 
     /// Finds the index of the first set bit, and unsets it.
-    /// If no bits are set, returns null.
+    /// If no bits are set, returns `null`.
     pub fn toggleFirstSet(self: *Self) ?usize {
         var offset: usize = 0;
         var mask = self.masks;
@@ -943,7 +943,7 @@ pub const DynamicBitSetUnmanaged = struct {
         return offset + index;
     }
 
-    /// Returns true iff every corresponding bit in both
+    /// Returns `true` iff every corresponding bit in both
     /// bit sets are the same.
     pub fn eql(self: Self, other: Self) bool {
         if (self.bit_length != other.bit_length) {
@@ -958,7 +958,7 @@ pub const DynamicBitSetUnmanaged = struct {
         } else true;
     }
 
-    /// Returns true iff the first bit set is the subset
+    /// Returns `true` iff the first bit set is the subset
     /// of the second one.
     pub fn subsetOf(self: Self, other: Self) bool {
         if (self.bit_length != other.bit_length) {
@@ -973,7 +973,7 @@ pub const DynamicBitSetUnmanaged = struct {
         } else true;
     }
 
-    /// Returns true iff the first bit set is the superset
+    /// Returns `true` iff the first bit set is the superset
     /// of the second one.
     pub fn supersetOf(self: Self, other: Self) bool {
         if (self.bit_length != other.bit_length) {
@@ -989,7 +989,7 @@ pub const DynamicBitSetUnmanaged = struct {
     }
 
     /// Iterates through the items in the set, according to the options.
-    /// The default options (.{}) will iterate indices of set bits in
+    /// The default options (`.{}`) will iterate indices of set bits in
     /// ascending order.  Modifications to the underlying bit set may
     /// or may not be observed by the iterator.  Resizing the underlying
     /// bit set invalidates the iterator.
@@ -1019,7 +1019,7 @@ pub const DynamicBitSetUnmanaged = struct {
 };
 
 /// A bit set with runtime-known size, backed by an allocated slice
-/// of usize.  Thin wrapper around DynamicBitSetUnmanaged which keeps
+/// of `usize`.  Thin wrapper around DynamicBitSetUnmanaged which keeps
 /// track of the allocator instance.
 pub const DynamicBitSet = struct {
     const Self = @This();
@@ -1058,9 +1058,7 @@ pub const DynamicBitSet = struct {
         try self.unmanaged.resize(self.allocator, new_len, fill);
     }
 
-    /// deinitializes the array and releases its memory.
-    /// The passed allocator must be the same one used for
-    /// init* or resize in the past.
+    /// Deinitializes the array and releases its memory.
     pub fn deinit(self: *Self) void {
         self.unmanaged.deinit(self.allocator);
     }
@@ -1078,8 +1076,8 @@ pub const DynamicBitSet = struct {
         return self.unmanaged.capacity();
     }
 
-    /// Returns true if the bit at the specified index
-    /// is present in the set, false otherwise.
+    /// Returns `true` if the bit at the specified index
+    /// is present in the set, `false` otherwise.
     pub fn isSet(self: Self, index: usize) bool {
         return self.unmanaged.isSet(index);
     }
@@ -1118,7 +1116,7 @@ pub const DynamicBitSet = struct {
 
     /// Flips all bits in this bit set which are present
     /// in the toggles bit set.  Both sets must have the
-    /// same bit_length.
+    /// same `bit_length`.
     pub fn toggleSet(self: *Self, toggles: Self) void {
         self.unmanaged.toggleSet(toggles.unmanaged);
     }
@@ -1131,7 +1129,7 @@ pub const DynamicBitSet = struct {
     /// Performs a union of two bit sets, and stores the
     /// result in the first one.  Bits in the result are
     /// set if the corresponding bits were set in either input.
-    /// The two sets must both be the same bit_length.
+    /// The two sets must both be the same `bit_length`.
     pub fn setUnion(self: *Self, other: Self) void {
         self.unmanaged.setUnion(other.unmanaged);
     }
@@ -1139,19 +1137,19 @@ pub const DynamicBitSet = struct {
     /// Performs an intersection of two bit sets, and stores
     /// the result in the first one.  Bits in the result are
     /// set if the corresponding bits were set in both inputs.
-    /// The two sets must both be the same bit_length.
+    /// The two sets must both be the same `bit_length`.
     pub fn setIntersection(self: *Self, other: Self) void {
         self.unmanaged.setIntersection(other.unmanaged);
     }
 
     /// Finds the index of the first set bit.
-    /// If no bits are set, returns null.
+    /// If no bits are set, returns `null`.
     pub fn findFirstSet(self: Self) ?usize {
         return self.unmanaged.findFirstSet();
     }
 
     /// Finds the index of the first set bit, and unsets it.
-    /// If no bits are set, returns null.
+    /// If no bits are set, returns `null`.
     pub fn toggleFirstSet(self: *Self) ?usize {
         return self.unmanaged.toggleFirstSet();
     }
@@ -1163,7 +1161,7 @@ pub const DynamicBitSet = struct {
     }
 
     /// Iterates through the items in the set, according to the options.
-    /// The default options (.{}) will iterate indices of set bits in
+    /// The default options (`.{}`) will iterate indices of set bits in
     /// ascending order.  Modifications to the underlying bit set may
     /// or may not be observed by the iterator.  Resizing the underlying
     /// bit set invalidates the iterator.
