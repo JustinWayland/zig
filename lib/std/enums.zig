@@ -7,7 +7,7 @@ const EnumField = std.builtin.Type.EnumField;
 
 /// Returns a struct with a field matching each unique named enum element.
 /// If the enum is extern and has multiple names for the same value, only
-/// the first name is used.  Each field is of type Data and has the provided
+/// the first name is used.  Each field is of type `Data` and has the provided
 /// default, which may be undefined.
 pub fn EnumFieldStruct(comptime E: type, comptime Data: type, comptime field_default: ?Data) type {
     const StructField = std.builtin.Type.StructField;
@@ -48,7 +48,7 @@ pub fn values(comptime E: type) []const E {
     return comptime valuesFromFields(E, @typeInfo(E).Enum.fields);
 }
 
-/// A safe alternative to @tagName() for non-exhaustive enums that doesn't
+/// A safe alternative to `@tagName` for non-exhaustive enums that doesn't
 /// panic when `e` has no tagged value.
 /// Returns the tag name for `e` or null if no tag exists.
 pub fn tagName(comptime E: type, e: E) ?[]const u8 {
@@ -65,7 +65,7 @@ test tagName {
 }
 
 /// Determines the length of a direct-mapped enum array, indexed by
-/// @intCast(usize, @intFromEnum(enum_value)).
+/// `@intCast(usize, @intFromEnum(enum_value))`.
 /// If the enum is non-exhaustive, the resulting length will only be enough
 /// to hold all explicit fields.
 /// If the enum contains any fields with values that cannot be represented
@@ -99,16 +99,16 @@ pub fn directEnumArrayLen(comptime E: type, comptime max_unused_slots: comptime_
     return max_value + 1;
 }
 
-/// Initializes an array of Data which can be indexed by
-/// @intCast(usize, @intFromEnum(enum_value)).
+/// Initializes an array of `Data` which can be indexed by
+/// `@intCast(usize, @intFromEnum(enum_value))`.
 /// If the enum is non-exhaustive, the resulting array will only be large enough
 /// to hold all explicit fields.
 /// If the enum contains any fields with values that cannot be represented
-/// by usize, a compile error is issued.  The max_unused_slots parameter limits
+/// by `usize`, a compile error is issued.  The `max_unused_slots` parameter limits
 /// the total number of items which have no matching enum key (holes in the enum
-/// numbering).  So for example, if an enum has values 1, 2, 5, and 6, max_unused_slots
+/// numbering).  So for example, if an enum has values 1, 2, 5, and 6, `max_unused_slots`
 /// must be at least 3, to allow unused slots 0, 3, and 4.
-/// The init_values parameter must be a struct with field names that match the enum values.
+/// The `init_values` parameter must be a struct with field names that match the enum values.
 /// If the enum has multiple fields with the same value, the name of the first one must
 /// be used.
 pub fn directEnumArray(
@@ -135,14 +135,14 @@ test "std.enums.directEnumArray" {
     try testing.expectEqual(true, array[2]);
 }
 
-/// Initializes an array of Data which can be indexed by
-/// @intCast(usize, @intFromEnum(enum_value)).  The enum must be exhaustive.
+/// Initializes an array of `Data` which can be indexed by
+/// `@intCast(usize, @intFromEnum(enum_value))`.  The enum must be exhaustive.
 /// If the enum contains any fields with values that cannot be represented
-/// by usize, a compile error is issued.  The max_unused_slots parameter limits
+/// by `usize`, a compile error is issued.  The `max_unused_slots` parameter limits
 /// the total number of items which have no matching enum key (holes in the enum
-/// numbering).  So for example, if an enum has values 1, 2, 5, and 6, max_unused_slots
+/// numbering).  So for example, if an enum has values 1, 2, 5, and 6, `max_unused_slots`
 /// must be at least 3, to allow unused slots 0, 3, and 4.
-/// The init_values parameter must be a struct with field names that match the enum values.
+/// The `init_values` parameter must be a struct with field names that match the enum values.
 /// If the enum has multiple fields with the same value, the name of the first one must
 /// be used.
 pub fn directEnumArrayDefault(
@@ -190,7 +190,7 @@ test "std.enums.directEnumArrayDefault slice" {
     try testing.expectEqualSlices(u8, "default", array[2]);
 }
 
-/// Cast an enum literal, value, or string to the enum value of type E
+/// Cast an enum literal, value, or string to the enum value of type `E`
 /// with the same name.
 pub fn nameCast(comptime E: type, comptime value: anytype) E {
     return comptime blk: {
@@ -320,15 +320,15 @@ pub fn EnumMap(comptime E: type, comptime V: type) type {
     return IndexedMap(EnumIndexer(E), V, mixin.EnumMapExt);
 }
 
-/// A multiset of enum elements up to a count of usize. Backed
-/// by an EnumArray. This type does no dynamic allocation and can
+/// A multiset of enum elements up to a count of `usize`. Backed
+/// by an `EnumArray`. This type does no dynamic allocation and can
 /// be copied by value.
 pub fn EnumMultiset(comptime E: type) type {
     return BoundedEnumMultiset(E, usize);
 }
 
-/// A multiset of enum elements up to CountSize. Backed by an
-/// EnumArray. This type does no dynamic allocation and can be
+/// A multiset of enum elements up to `CountSize`. Backed by an
+/// `EnumArray`. This type does no dynamic allocation and can be
 /// copied by value.
 pub fn BoundedEnumMultiset(comptime E: type, comptime CountSize: type) type {
     return struct {
@@ -435,7 +435,7 @@ pub fn BoundedEnumMultiset(comptime E: type, comptime CountSize: type) type {
             }
         }
 
-        /// Returns true iff all key counts are the same as
+        /// Returns `true` iff all key counts are the same as
         /// given multiset.
         pub fn eql(self: Self, other: Self) bool {
             inline for (@typeInfo(E).Enum.fields) |field| {
@@ -447,7 +447,7 @@ pub fn BoundedEnumMultiset(comptime E: type, comptime CountSize: type) type {
             return true;
         }
 
-        /// Returns true iff all key counts less than or
+        /// Returns `true` iff all key counts less than or
         /// equal to the given multiset.
         pub fn subsetOf(self: Self, other: Self) bool {
             inline for (@typeInfo(E).Enum.fields) |field| {
@@ -459,7 +459,7 @@ pub fn BoundedEnumMultiset(comptime E: type, comptime CountSize: type) type {
             return true;
         }
 
-        /// Returns true iff all key counts greater than or
+        /// Returns `true` iff all key counts greater than or
         /// equal to the given multiset.
         pub fn supersetOf(self: Self, other: Self) bool {
             inline for (@typeInfo(E).Enum.fields) |field| {
@@ -753,7 +753,7 @@ fn NoExtension(comptime Self: type) type {
 }
 const NoExt = struct {};
 
-/// A set type with an Indexer mapping from keys to indices.
+/// A set type with an `Indexer` mapping from keys to indices.
 /// Presence or absence is stored as a dense bitfield.  This
 /// type does no allocation and can be copied by value.
 pub fn IndexedSet(comptime I: type, comptime Ext: ?fn (type) type) type {
@@ -848,19 +848,19 @@ pub fn IndexedSet(comptime I: type, comptime Ext: ?fn (type) type) type {
             self.bits.setIntersection(other.bits);
         }
 
-        /// Returns true iff both sets have the same keys.
+        /// Returns `true` iff both sets have the same keys.
         pub fn eql(self: Self, other: Self) bool {
             return self.bits.eql(other.bits);
         }
 
-        /// Returns true iff all the keys in this set are
+        /// Returns `true` iff all the keys in this set are
         /// in the other set. The other set may have keys
         /// not found in this set.
         pub fn subsetOf(self: Self, other: Self) bool {
             return self.bits.subsetOf(other.bits);
         }
 
-        /// Returns true iff this set contains all the keys
+        /// Returns `true` iff this set contains all the keys
         /// in the other set. This set may have keys not
         /// found in the other set.
         pub fn supersetOf(self: Self, other: Self) bool {
@@ -1258,8 +1258,8 @@ pub fn IndexedArray(comptime I: type, comptime V: type, comptime Ext: ?fn (type)
     };
 }
 
-/// Verifies that a type is a valid Indexer, providing a helpful
-/// compile error if not.  An Indexer maps a comptime-known set
+/// Verifies that a type is a valid `Indexer`, providing a helpful
+/// compile error if not.  An `Indexer` maps a comptime-known set
 /// of keys to a dense set of zero-based indices.
 /// The indexer interface must look like this:
 /// ```
