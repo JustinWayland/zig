@@ -256,7 +256,7 @@ pub fn LinearFifo(
         }
 
         /// Returns a writable buffer of at least `size` items, allocating memory as needed.
-        /// Use `fifo.update` once you've written data to it.
+        /// Use `update` once you've written data to it.
         pub fn writableWithSize(self: *Self, size: usize) ![]T {
             try self.ensureUnusedCapacity(size);
 
@@ -269,7 +269,7 @@ pub fn LinearFifo(
             return slice;
         }
 
-        /// Update the tail location of the buffer (usually follows use of writable/writableWithSize)
+        /// Update the tail location of the buffer (usually follows use of `writable`/`writableWithSize`)
         pub fn update(self: *Self, count: usize) void {
             assert(self.count + count <= self.buf.len);
             self.count += count;
@@ -358,7 +358,7 @@ pub fn LinearFifo(
         }
 
         /// Returns the item at `offset`.
-        /// Asserts offset is within bounds.
+        /// Asserts `offset` is within bounds.
         pub fn peekItem(self: Self, offset: usize) T {
             assert(offset < self.count);
 
