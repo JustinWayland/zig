@@ -21,7 +21,7 @@ pub const Lock = struct {
         @compileError("std.event.Lock currently only works with event-based I/O");
 
     const Waiter = struct {
-        // forced Waiter alignment to ensure it doesn't clash with LOCKED
+        // forced `Waiter` alignment to ensure it doesn't clash with `LOCKED`
         next: ?*Waiter align(2),
         tail: *Waiter,
         node: Loop.NextTickNode,
@@ -34,13 +34,13 @@ pub const Lock = struct {
     pub fn acquire(self: *Lock) Held {
         self.mutex.lock();
 
-        // self.head transitions from multiple stages depending on the value:
-        // UNLOCKED -> LOCKED:
-        //   acquire Lock ownership when there are no waiters
-        // LOCKED -> <Waiter head ptr>:
-        //   Lock is already owned, enqueue first Waiter
-        // <head ptr> -> <head ptr>:
-        //   Lock is owned with pending waiters. Push our waiter to the queue.
+        // `self.head` transitions from multiple stages depending on the value:
+        // `UNLOCKED` -> `LOCKED`:
+        //   acquire `Lock` ownership when there are no waiters
+        // `LOCKED` -> `<Waiter head ptr>`:
+        //   `Lock` is already owned, enqueue first `Waiter`
+        // `<head ptr>` -> `<head ptr>`:
+        //   `Lock` is owned with pending `Waiter`s. Push our `Waiter` to the queue.
 
         if (self.head == UNLOCKED) {
             self.head = LOCKED;
