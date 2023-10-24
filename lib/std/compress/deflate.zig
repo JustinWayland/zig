@@ -1,5 +1,5 @@
 //! The deflate package is a translation of the Go code of the compress/flate package from
-//! https://go.googlesource.com/go/+/refs/tags/go1.17/src/compress/flate/
+//! [https://go.googlesource.com/go/+/refs/tags/go1.17/src/compress/flate/](https://go.googlesource.com/go/+/refs/tags/go1.17/src/compress/flate/)
 
 const deflate = @import("deflate/compressor.zig");
 const inflate = @import("deflate/decompressor.zig");
