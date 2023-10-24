@@ -4,10 +4,10 @@ const assert = std.debug.assert;
 const testing = std.testing;
 const Lock = std.event.Lock;
 
-/// This is a value that starts out unavailable, until resolve() is called.
-/// While it is unavailable, functions suspend when they try to get() it,
-/// and then are resumed when resolve() is called.
-/// At this point the value remains forever available, and another resolve() is not allowed.
+/// This is a value that starts out unavailable, until `resolve` is called.
+/// While it is unavailable, functions suspend when they try to `get` it,
+/// and then are resumed when `resolve` is called.
+/// At this point the value remains forever available, and another `resolve` is not allowed.
 pub fn Future(comptime T: type) type {
     return struct {
         lock: Lock,
@@ -45,7 +45,7 @@ pub fn Future(comptime T: type) type {
         }
 
         /// Gets the data without waiting for it. If it's available, a pointer is
-        /// returned. Otherwise, null is returned.
+        /// returned. Otherwise, `null` is returned.
         pub fn getOrNull(self: *Self) ?*T {
             if (@atomicLoad(Available, &self.available, .SeqCst) == .Finished) {
                 return &self.data;
@@ -57,7 +57,7 @@ pub fn Future(comptime T: type) type {
         /// If someone else has started working on the data, wait for them to complete
         /// and return a pointer to the data. Otherwise, return null, and the caller
         /// should start working on the data.
-        /// It's not required to call start() before resolve() but it can be useful since
+        /// It's not required to call `start` before `resolve` but it can be useful since
         /// this method is thread-safe.
         pub fn start(self: *Self) callconv(.Async) ?*T {
             const state = @cmpxchgStrong(Available, &self.available, .NotStarted, .Started, .SeqCst, .SeqCst) orelse return null;
