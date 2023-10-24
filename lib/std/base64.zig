@@ -95,7 +95,7 @@ pub const Base64Encoder = struct {
         }
     }
 
-    /// dest.len must at least be what you get from ::calcSize.
+    /// `dest.len` must at least be what you get from `calcSize`.
     pub fn encode(encoder: *const Base64Encoder, dest: []u8, source: []const u8) []const u8 {
         const out_len = encoder.calcSize(source.len);
         assert(dest.len >= out_len);
@@ -202,9 +202,9 @@ pub const Base64Decoder = struct {
         return result;
     }
 
-    /// dest.len must be what you get from ::calcSize.
-    /// invalid characters result in error.InvalidCharacter.
-    /// invalid padding results in error.InvalidPadding.
+    /// `dest.len` must be what you get from `calcSizeUpperBound` or `calcSizeForSlice`.
+    /// Invalid characters result in `error.InvalidCharacter`.
+    /// Invalid padding results in `error.InvalidPadding`.
     pub fn decode(decoder: *const Base64Decoder, dest: []u8, source: []const u8) Error!void {
         if (decoder.pad_char != null and source.len % 4 != 0) return error.InvalidPadding;
         var dest_idx: usize = 0;
@@ -302,9 +302,9 @@ pub const Base64DecoderWithIgnore = struct {
         return result;
     }
 
-    /// Invalid characters that are not ignored result in error.InvalidCharacter.
-    /// Invalid padding results in error.InvalidPadding.
-    /// Decoding more data than can fit in dest results in error.NoSpaceLeft. See also ::calcSizeUpperBound.
+    /// Invalid characters that are not ignored result in `error.InvalidCharacter`.
+    /// Invalid padding results in `error.InvalidPadding`.
+    /// Decoding more data than can fit in dest results in `error.NoSpaceLeft`. See also `calcSizeUpperBound`.
     /// Returns the number of bytes written to dest.
     pub fn decode(decoder_with_ignore: *const Base64DecoderWithIgnore, dest: []u8, source: []const u8) Error!usize {
         const decoder = &decoder_with_ignore.decoder;
