@@ -13,13 +13,13 @@ const hm_bw = @import("huffman_bit_writer.zig");
 const token = @import("token.zig");
 
 pub const Compression = enum(i5) {
-    /// huffman_only disables Lempel-Ziv match searching and only performs Huffman
+    /// `huffman_only` disables Lempel-Ziv match searching and only performs Huffman
     /// entropy encoding. This mode is useful in compressing data that has
     /// already been compressed with an LZ style algorithm (e.g. Snappy or LZ4)
     /// that lacks an entropy encoder. Compression gains are achieved when
     /// certain bytes in the input stream occur more frequently than others.
     ///
-    /// Note that huffman_only produces a compressed output that is
+    /// Note that `huffman_only` produces a compressed output that is
     /// RFC 1951 compliant. That is, any valid DEFLATE decompressor will
     /// continue to be able to decompress this output.
     huffman_only = -2,
@@ -206,20 +206,20 @@ pub const CompressorOptions = struct {
     dictionary: ?[]const u8 = null,
 };
 
-/// Returns a new Compressor compressing data at the given level.
-/// Following zlib, levels range from 1 (best_speed) to 9 (best_compression);
+/// Returns a new `Compressor` compressing data at the given level.
+/// Following zlib, levels range from 1 (`best_speed`) to 9 (`best_compression`);
 /// higher levels typically run slower but compress more. Level 0
-/// (no_compression) does not attempt any compression; it only adds the
+/// (`no_compression`) does not attempt any compression; it only adds the
 /// necessary DEFLATE framing.
-/// Level -1 (default_compression) uses the default compression level.
-/// Level -2 (huffman_only) will use Huffman compression only, giving
+/// Level -1 (`default_compression`) uses the default compression level.
+/// Level -2 (`huffman_only`) will use Huffman compression only, giving
 /// a very fast compression for all types of input, but sacrificing considerable
 /// compression efficiency.
 ///
 /// `dictionary` is optional and initializes the new `Compressor` with a preset dictionary.
-/// The returned Compressor behaves as if the dictionary had been written to it without producing
-/// any compressed output. The compressed data written to hm_bw can only be decompressed by a
-/// Decompressor initialized with the same dictionary.
+/// The returned `Compressor` behaves as if the dictionary had been written to it without producing
+/// any compressed output. The compressed data written to `hm_bw` can only be decompressed by a
+/// `Decompressor` initialized with the same dictionary.
 ///
 /// The compressed data will be passed to the provided `writer`, see `writer()` and `write()`.
 pub fn compressor(
@@ -234,11 +234,11 @@ pub fn Compressor(comptime WriterType: anytype) type {
     return struct {
         const Self = @This();
 
-        /// A Writer takes data written to it and writes the compressed
+        /// A `Writer` takes data written to it and writes the compressed
         /// form of that data to an underlying writer.
         pub const Writer = io.Writer(*Self, Error, write);
 
-        /// Returns a Writer that takes data written to it and writes the compressed
+        /// Returns a `Writer` that takes data written to it and writes the compressed
         /// form of that data to an underlying writer.
         pub fn writer(self: *Self) Writer {
             return .{ .context = self };
@@ -750,12 +750,12 @@ pub fn Compressor(comptime WriterType: anytype) type {
         /// Flushes any pending data to the underlying writer.
         /// It is useful mainly in compressed network protocols, to ensure that
         /// a remote reader has enough data to reconstruct a packet.
-        /// Flush does not return until the data has been written.
-        /// Calling `flush()` when there is no pending data still causes the Writer
+        /// `flush` does not return until the data has been written.
+        /// Calling `flush` when there is no pending data still causes the Writer
         /// to emit a sync marker of at least 4 bytes.
-        /// If the underlying writer returns an error, `flush()` returns that error.
+        /// If the underlying writer returns an error, `flush` returns that error.
         ///
-        /// In the terminology of the zlib library, Flush is equivalent to Z_SYNC_FLUSH.
+        /// In the terminology of the zlib library, `flush` is equivalent to `Z_SYNC_FLUSH`.
         pub fn flush(self: *Self) !void {
             self.sync = true;
             try self.step();
