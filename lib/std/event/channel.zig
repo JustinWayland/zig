@@ -85,7 +85,7 @@ pub fn Channel(comptime T: type) type {
             self.* = undefined;
         }
 
-        /// puts a data item in the channel. The function returns when the value has been added to the
+        /// Puts a data item in the channel. The function returns when the value has been added to the
         /// buffer, or in the case of a zero size buffer, when the item has been retrieved by a getter.
         /// Or when the channel is destroyed.
         pub fn put(self: *SelfChannel, data: T) void {
@@ -105,7 +105,7 @@ pub fn Channel(comptime T: type) type {
             }
         }
 
-        /// await this function to get an item from the channel. If the buffer is empty, the frame will
+        /// Await this function to get an item from the channel. If the buffer is empty, the frame will
         /// complete when the next item is put in the channel.
         pub fn get(self: *SelfChannel) callconv(.Async) T {
             // TODO https://github.com/ziglang/zig/issues/2765
