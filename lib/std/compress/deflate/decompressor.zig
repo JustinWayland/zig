@@ -285,9 +285,9 @@ const DecompressorState = enum {
     dict,
 };
 
-/// Returns a new Decompressor that can be used to read the uncompressed version of `reader`.
-/// `dictionary` is optional and initializes the Decompressor with a preset dictionary.
-/// The returned Decompressor behaves as if the uncompressed data stream started with the given
+/// Returns a new `Decompressor` that can be used to read the uncompressed version of `reader`.
+/// `dictionary` is optional and initializes the `Decompressor` with a preset dictionary.
+/// The returned `Decompressor` behaves as if the uncompressed data stream started with the given
 /// dictionary, which has already been read. Use the same `dictionary` as the compressor used to
 /// compress the data.
 /// This decompressor may use at most 300 KiB of heap memory from the provided allocator.
@@ -345,7 +345,7 @@ pub fn Decompressor(comptime ReaderType: type) type {
         copy_len: u32,
         copy_dist: u32,
 
-        /// Returns a Reader that reads compressed data from an underlying reader and outputs
+        /// Returns a `Reader` that reads compressed data from an underlying reader and outputs
         /// uncompressed data.
         pub fn reader(self: *Self) Reader {
             return .{ .context = self };
@@ -878,8 +878,8 @@ pub fn Decompressor(comptime ReaderType: type) type {
             }
         }
 
-        /// Replaces the inner reader and dictionary with new_reader and new_dict.
-        /// new_reader must be of the same type as the reader being replaced.
+        /// Replaces the inner reader and dictionary with `new_reader` and `new_dict`.
+        /// `new_reader` must be of the same type as the reader being replaced.
         pub fn reset(s: *Self, new_reader: ReaderType, new_dict: ?[]const u8) !void {
             s.inner_reader = new_reader;
             s.step = nextBlock;
