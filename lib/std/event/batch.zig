@@ -65,7 +65,7 @@ pub fn Batch(
             };
         }
 
-        /// Add a frame to the Batch. If all jobs are in-flight, then this function
+        /// Add a frame to the `Batch`. If all jobs are in-flight, then this function
         /// waits until one completes.
         /// This function is *not* thread-safe. It must be called from one thread at
         /// a time, however, it need not be the same thread.
