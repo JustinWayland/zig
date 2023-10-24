@@ -79,7 +79,7 @@ const PdbOrDwarf = union(enum) {
 
 var stderr_mutex = std.Thread.Mutex{};
 
-/// Print to stderr, unbuffered, and silently returning on failure. Intended
+/// Print to `stderr`, unbuffered, and silently returning on failure. Intended
 /// for use in "printf debugging." Use `std.log` functions for proper logging.
 pub fn print(comptime fmt: []const u8, args: anytype) void {
     stderr_mutex.lock();
@@ -104,7 +104,7 @@ pub fn getSelfDebugInfo() !*DebugInfo {
     }
 }
 
-/// Tries to print the current stack trace to stderr, unbuffered, and ignores any error returned.
+/// Tries to print the current stack trace to `stderr`, unbuffered, and ignores any error returned.
 /// TODO multithreaded awareness
 pub fn dumpCurrentStackTrace(start_addr: ?usize) void {
     nosuspend {
@@ -202,7 +202,7 @@ pub inline fn getContext(context: *ThreadContext) bool {
     return result;
 }
 
-/// Tries to print the stack trace starting from the supplied base pointer to stderr,
+/// Tries to print the stack trace starting from the supplied base pointer to `stderr`,
 /// unbuffered, and ignores any error returned.
 /// TODO multithreaded awareness
 pub fn dumpStackTraceFromBase(context: *const ThreadContext) void {
@@ -255,8 +255,8 @@ pub fn dumpStackTraceFromBase(context: *const ThreadContext) void {
 }
 
 /// Returns a slice with the same pointer as addresses, with a potentially smaller len.
-/// On Windows, when first_address is not null, we ask for at least 32 stack frames,
-/// and then try to find the first address. If addresses.len is more than 32, we
+/// On Windows, when `first_address` is not null, we ask for at least 32 stack frames,
+/// and then try to find the first address. If `addresses.len` is more than 32, we
 /// capture that many stack frames exactly, and then look for the first address,
 /// chopping off the irrelevant frames and shifting so that the returned addresses pointer
 /// equals the passed in addresses pointer.
@@ -301,7 +301,7 @@ pub fn captureStackTrace(first_address: ?usize, stack_trace: *std.builtin.StackT
     }
 }
 
-/// Tries to print a stack trace to stderr, unbuffered, and ignores any error returned.
+/// Tries to print a stack trace to `stderr`, unbuffered, and ignores any error returned.
 /// TODO multithreaded awareness
 pub fn dumpStackTrace(stack_trace: std.builtin.StackTrace) void {
     nosuspend {
@@ -1265,7 +1265,7 @@ pub fn readElfDebugInfo(
     }
 }
 
-/// This takes ownership of macho_file: users of this function should not close
+/// This takes ownership of `macho_file`: users of this function should not close
 /// it themselves, even on error.
 /// TODO it's weird to take ownership even on error, rework this code.
 fn readMachODebugInfo(allocator: mem.Allocator, macho_file: File) !ModuleDebugInfo {
