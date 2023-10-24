@@ -72,7 +72,7 @@ pub fn Channel(comptime T: type) type {
             };
         }
 
-        /// Must be called when all calls to put and get have suspended and no more calls occur.
+        /// Must be called when all calls to `put` and `get` have suspended and no more calls occur.
         /// This can be omitted if caller can guarantee that the suspended putters and getters
         /// do not need to be run to completion. Note that this may leave awaiters hanging.
         pub fn deinit(self: *SelfChannel) void {
