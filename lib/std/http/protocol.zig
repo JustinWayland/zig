@@ -529,7 +529,7 @@ pub const HeadersParser = struct {
                         try conn.fill();
 
                         const nread = @min(conn.peek().len, data_avail);
-                        conn.drop(@as(u16, @intCast(nread)));
+                        conn.drop(@intCast(nread));
                         r.next_chunk_length -= nread;
 
                         if (r.next_chunk_length == 0) r.done = true;
@@ -553,7 +553,7 @@ pub const HeadersParser = struct {
                     try conn.fill();
 
                     const i = r.findChunkedLen(conn.peek());
-                    conn.drop(@as(u16, @intCast(i)));
+                    conn.drop(@intCast(i));
 
                     switch (r.state) {
                         .invalid => return error.HttpChunkInvalid,
@@ -582,7 +582,7 @@ pub const HeadersParser = struct {
                         try conn.fill();
 
                         const nread = @min(conn.peek().len, data_avail);
-                        conn.drop(@as(u16, @intCast(nread)));
+                        conn.drop(@intCast(nread));
                         r.next_chunk_length -= nread;
                     } else if (out_avail > 0) {
                         const can_read: usize = @intCast(@min(data_avail, out_avail));
@@ -617,8 +617,8 @@ inline fn int32(array: *const [4]u8) u32 {
 
 inline fn intShift(comptime T: type, x: anytype) T {
     switch (@import("builtin").cpu.arch.endian()) {
-        .Little => return @as(T, @truncate(x >> (@bitSizeOf(@TypeOf(x)) - @bitSizeOf(T)))),
-        .Big => return @as(T, @truncate(x)),
+        .little => return @as(T, @truncate(x >> (@bitSizeOf(@TypeOf(x)) - @bitSizeOf(T)))),
+        .big => return @as(T, @truncate(x)),
     }
 }
 

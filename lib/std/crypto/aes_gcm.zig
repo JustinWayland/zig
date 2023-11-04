@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const assert = std.debug.assert;
 const crypto = std.crypto;
 const debug = std.debug;
@@ -32,7 +33,7 @@ fn AesGcm(comptime Aes: anytype) type {
             var t: [16]u8 = undefined;
             var j: [16]u8 = undefined;
             j[0..nonce_length].* = npub;
-            mem.writeIntBig(u32, j[nonce_length..][0..4], 1);
+            mem.writeInt(u32, j[nonce_length..][0..4], 1, .big);
             aes.encrypt(&t, &j);
 
             const block_count = (math.divCeil(usize, ad.len, Ghash.block_length) catch unreachable) + (math.divCeil(usize, c.len, Ghash.block_length) catch unreachable) + 1;
@@ -40,14 +41,14 @@ fn AesGcm(comptime Aes: anytype) type {
             mac.update(ad);
             mac.pad();
 
-            mem.writeIntBig(u32, j[nonce_length..][0..4], 2);
-            modes.ctr(@TypeOf(aes), aes, c, m, j, std.builtin.Endian.Big);
+            mem.writeInt(u32, j[nonce_length..][0..4], 2, .big);
+            modes.ctr(@TypeOf(aes), aes, c, m, j, std.builtin.Endian.big);
             mac.update(c[0..m.len][0..]);
             mac.pad();
 
             var final_block = h;
-            mem.writeIntBig(u64, final_block[0..8], ad.len * 8);
-            mem.writeIntBig(u64, final_block[8..16], m.len * 8);
+            mem.writeInt(u64, final_block[0..8], ad.len * 8, .big);
+            mem.writeInt(u64, final_block[8..16], m.len * 8, .big);
             mac.update(&final_block);
             mac.final(tag);
             for (t, 0..) |x, i| {
@@ -74,7 +75,7 @@ fn AesGcm(comptime Aes: anytype) type {
             var t: [16]u8 = undefined;
             var j: [16]u8 = undefined;
             j[0..nonce_length].* = npub;
-            mem.writeIntBig(u32, j[nonce_length..][0..4], 1);
+            mem.writeInt(u32, j[nonce_length..][0..4], 1, .big);
             aes.encrypt(&t, &j);
 
             const block_count = (math.divCeil(usize, ad.len, Ghash.block_length) catch unreachable) + (math.divCeil(usize, c.len, Ghash.block_length) catch unreachable) + 1;
@@ -86,8 +87,8 @@ fn AesGcm(comptime Aes: anytype) type {
             mac.pad();
 
             var final_block = h;
-            mem.writeIntBig(u64, final_block[0..8], ad.len * 8);
-            mem.writeIntBig(u64, final_block[8..16], m.len * 8);
+            mem.writeInt(u64, final_block[0..8], ad.len * 8, .big);
+            mem.writeInt(u64, final_block[8..16], m.len * 8, .big);
             mac.update(&final_block);
             var computed_tag: [Ghash.mac_length]u8 = undefined;
             mac.final(&computed_tag);
@@ -102,8 +103,8 @@ fn AesGcm(comptime Aes: anytype) type {
                 return error.AuthenticationFailed;
             }
 
-            mem.writeIntBig(u32, j[nonce_length..][0..4], 2);
-            modes.ctr(@TypeOf(aes), aes, m, c, j, std.builtin.Endian.Big);
+            mem.writeInt(u32, j[nonce_length..][0..4], 2, .big);
+            modes.ctr(@TypeOf(aes), aes, m, c, j, std.builtin.Endian.big);
         }
     };
 }
@@ -112,6 +113,8 @@ const htest = @import("test.zig");
 const testing = std.testing;
 
 test "Aes256Gcm - Empty message and no associated data" {
+    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     const key: [Aes256Gcm.key_length]u8 = [_]u8{0x69} ** Aes256Gcm.key_length;
     const nonce: [Aes256Gcm.nonce_length]u8 = [_]u8{0x42} ** Aes256Gcm.nonce_length;
     const ad = "";
@@ -124,6 +127,8 @@ test "Aes256Gcm - Empty message and no associated data" {
 }
 
 test "Aes256Gcm - Associated data only" {
+    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     const key: [Aes256Gcm.key_length]u8 = [_]u8{0x69} ** Aes256Gcm.key_length;
     const nonce: [Aes256Gcm.nonce_length]u8 = [_]u8{0x42} ** Aes256Gcm.nonce_length;
     const m = "";
@@ -136,6 +141,8 @@ test "Aes256Gcm - Associated data only" {
 }
 
 test "Aes256Gcm - Message only" {
+    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     const key: [Aes256Gcm.key_length]u8 = [_]u8{0x69} ** Aes256Gcm.key_length;
     const nonce: [Aes256Gcm.nonce_length]u8 = [_]u8{0x42} ** Aes256Gcm.nonce_length;
     const m = "Test with message only";
@@ -153,6 +160,8 @@ test "Aes256Gcm - Message only" {
 }
 
 test "Aes256Gcm - Message and associated data" {
+    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     const key: [Aes256Gcm.key_length]u8 = [_]u8{0x69} ** Aes256Gcm.key_length;
     const nonce: [Aes256Gcm.nonce_length]u8 = [_]u8{0x42} ** Aes256Gcm.nonce_length;
     const m = "Test with message";

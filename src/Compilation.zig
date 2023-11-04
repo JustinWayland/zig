@@ -267,10 +267,6 @@ const Job = union(enum) {
     /// It may have already be analyzed, or it may have been determined
     /// to be outdated; in this case perform semantic analysis again.
     analyze_decl: Module.Decl.Index,
-    /// The file that was loaded with `@embedFile` has changed on disk
-    /// and has been re-loaded into memory. All Decls that depend on it
-    /// need to be re-analyzed.
-    update_embed_file: *Module.EmbedFile,
     /// The source file containing the Decl has been updated, and so the
     /// Decl may need its line number information updated in the debug info.
     update_line_number: Module.Decl.Index,
@@ -739,6 +735,7 @@ pub const InitOptions = struct {
     pdb_source_path: ?[]const u8 = null,
     /// (Windows) PDB output path
     pdb_out_path: ?[]const u8 = null,
+    error_limit: ?Module.ErrorInt = null,
 };
 
 fn addModuleTableToCacheHash(
@@ -1432,6 +1429,7 @@ pub fn create(gpa: Allocator, options: InitOptions) !*Compilation {
                 .local_zir_cache = local_zir_cache,
                 .emit_h = emit_h,
                 .tmp_hack_arena = std.heap.ArenaAllocator.init(gpa),
+                .error_limit = options.error_limit orelse (std.math.maxInt(u16) - 1),
             };
             try module.init();
 
@@ -2268,8 +2266,7 @@ pub fn update(comp: *Compilation, main_progress_node: *std.Progress.Node) !void 
             const decl_index = module.deletion_set.keys()[0];
             const decl = module.declPtr(decl_index);
             assert(decl.deletion_flag);
-            assert(decl.dependants.count() == 0);
-            assert(decl.zir_decl_index != 0);
+            assert(decl.zir_decl_index != .none);
 
             try module.clearDecl(decl_index, null);
         }
@@ -2486,6 +2483,7 @@ fn addNonIncrementalStuffToCacheManifest(comp: *Compilation, man: *Cache.Manifes
         man.hash.add(comp.bin_file.options.skip_linker_dependencies);
         man.hash.add(comp.bin_file.options.parent_compilation_link_libc);
         man.hash.add(mod.emit_h != null);
+        man.hash.add(mod.error_limit);
     }
 
     try man.addOptionalFile(comp.bin_file.options.linker_script);
@@ -2866,6 +2864,10 @@ pub fn totalErrorCount(self: *Compilation) u32 {
                 }
             }
         }
+
+        if (module.global_error_set.entries.len - 1 > module.error_limit) {
+            total += 1;
+        }
     }
 
     // The "no entry point found" error only counts if there are no semantic analysis errors.
@@ -3015,6 +3017,22 @@ pub fn getAllErrorsAlloc(self: *Compilation) !ErrorBundle {
         }
         for (module.failed_exports.values()) |value| {
             try addModuleErrorMsg(module, &bundle, value.*);
+        }
+
+        const actual_error_count = module.global_error_set.entries.len - 1;
+        if (actual_error_count > module.error_limit) {
+            try bundle.addRootErrorMessage(.{
+                .msg = try bundle.printString("module used more errors than possible: used {d}, max {d}", .{
+                    actual_error_count, module.error_limit,
+                }),
+                .notes_len = 1,
+            });
+            const notes_start = try bundle.reserveNotes(1);
+            bundle.extra.items[notes_start] = @intFromEnum(try bundle.addErrorMessage(.{
+                .msg = try bundle.printString("use '--error-limit {d}' to increase limit", .{
+                    actual_error_count,
+                }),
+            }));
         }
     }
 
@@ -3351,9 +3369,6 @@ pub fn performAllTheWork(
     var win32_resource_prog_node = main_progress_node.start("Compile Win32 Resources", comp.rc_source_files.len);
     defer win32_resource_prog_node.end();
 
-    var embed_file_prog_node = main_progress_node.start("Detect @embedFile updates", comp.embed_file_work_queue.count);
-    defer embed_file_prog_node.end();
-
     comp.work_queue_wait_group.reset();
     defer comp.work_queue_wait_group.wait();
 
@@ -3389,7 +3404,7 @@ pub fn performAllTheWork(
         while (comp.embed_file_work_queue.readItem()) |embed_file| {
             comp.astgen_wait_group.start();
             try comp.thread_pool.spawn(workerCheckEmbedFile, .{
-                comp, embed_file, &embed_file_prog_node, &comp.astgen_wait_group,
+                comp, embed_file, &comp.astgen_wait_group,
             });
         }
 
@@ -3540,11 +3555,12 @@ fn processOneJob(comp: *Compilation, job: Job, prog_node: *std.Progress.Node) !v
                         .gpa = gpa,
                         .module = module,
                         .error_msg = null,
-                        .decl_index = decl_index.toOptional(),
+                        .pass = .{ .decl = decl_index },
                         .is_naked_fn = false,
                         .fwd_decl = fwd_decl.toManaged(gpa),
                         .ctypes = .{},
                         .anon_decl_deps = .{},
+                        .aligned_anon_decls = .{},
                     };
                     defer {
                         dg.ctypes.deinit(gpa);
@@ -3577,16 +3593,6 @@ fn processOneJob(comp: *Compilation, job: Job, prog_node: *std.Progress.Node) !v
                 // that now.
                 try module.ensureFuncBodyAnalysisQueued(decl.val.toIntern());
             }
-        },
-        .update_embed_file => |embed_file| {
-            const named_frame = tracy.namedFrame("update_embed_file");
-            defer named_frame.end();
-
-            const module = comp.bin_file.options.module.?;
-            module.updateEmbedFile(embed_file) catch |err| switch (err) {
-                error.OutOfMemory => return error.OutOfMemory,
-                error.AnalysisFail => return,
-            };
         },
         .update_line_number => |decl_index| {
             const named_frame = tracy.namedFrame("update_line_number");
@@ -3897,17 +3903,11 @@ fn workerUpdateBuiltinZigFile(
 fn workerCheckEmbedFile(
     comp: *Compilation,
     embed_file: *Module.EmbedFile,
-    prog_node: *std.Progress.Node,
     wg: *WaitGroup,
 ) void {
     defer wg.finish();
 
-    var child_prog_node = prog_node.start(embed_file.sub_file_path, 0);
-    child_prog_node.activate();
-    defer child_prog_node.end();
-
-    const mod = comp.bin_file.options.module.?;
-    mod.detectEmbedFileUpdate(embed_file) catch |err| {
+    comp.detectEmbedFileUpdate(embed_file) catch |err| {
         comp.reportRetryableEmbedFileError(embed_file, err) catch |oom| switch (oom) {
             // Swallowing this error is OK because it's implied to be OOM when
             // there is a missing `failed_embed_files` error message.
@@ -3915,6 +3915,25 @@ fn workerCheckEmbedFile(
         };
         return;
     };
+}
+
+fn detectEmbedFileUpdate(comp: *Compilation, embed_file: *Module.EmbedFile) !void {
+    const mod = comp.bin_file.options.module.?;
+    const ip = &mod.intern_pool;
+    const sub_file_path = ip.stringToSlice(embed_file.sub_file_path);
+    var file = try embed_file.owner.root.openFile(sub_file_path, .{});
+    defer file.close();
+
+    const stat = try file.stat();
+
+    const unchanged_metadata =
+        stat.size == embed_file.stat.size and
+        stat.mtime == embed_file.stat.mtime and
+        stat.inode == embed_file.stat.inode;
+
+    if (unchanged_metadata) return;
+
+    @panic("TODO: handle embed file incremental update");
 }
 
 pub fn obtainCObjectCacheManifest(comp: *const Compilation) Cache.Manifest {
@@ -4274,11 +4293,12 @@ fn reportRetryableEmbedFileError(
 ) error{OutOfMemory}!void {
     const mod = comp.bin_file.options.module.?;
     const gpa = mod.gpa;
-
-    const src_loc: Module.SrcLoc = mod.declPtr(embed_file.owner_decl).srcLoc(mod);
-
+    const src_loc = embed_file.src_loc;
+    const ip = &mod.intern_pool;
     const err_msg = try Module.ErrorMsg.create(gpa, src_loc, "unable to load '{}{s}': {s}", .{
-        embed_file.mod.root, embed_file.sub_file_path, @errorName(err),
+        embed_file.owner.root,
+        ip.stringToSlice(embed_file.sub_file_path),
+        @errorName(err),
     });
 
     errdefer err_msg.destroy(gpa);

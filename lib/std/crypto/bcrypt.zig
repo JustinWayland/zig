@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const base64 = std.base64;
 const crypto = std.crypto;
 const debug = std.debug;
@@ -450,7 +451,7 @@ pub fn bcrypt(
 
     var ct: [ct_length]u8 = undefined;
     for (cdata, 0..) |c, i| {
-        mem.writeIntBig(u32, ct[i * 4 ..][0..4], c);
+        mem.writeInt(u32, ct[i * 4 ..][0..4], c, .big);
     }
     return ct[0..dk_length].*;
 }
@@ -546,7 +547,7 @@ const pbkdf_prf = struct {
         // copy out
         var out: [32]u8 = undefined;
         for (cdata, 0..) |v, i| {
-            std.mem.writeIntLittle(u32, out[4 * i ..][0..4], v);
+            std.mem.writeInt(u32, out[4 * i ..][0..4], v, .little);
         }
 
         // zap
@@ -753,6 +754,8 @@ pub fn strVerify(
 }
 
 test "bcrypt codec" {
+    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     var salt: [salt_length]u8 = undefined;
     crypto.random.bytes(&salt);
     var salt_str: [salt_str_length]u8 = undefined;
@@ -763,6 +766,8 @@ test "bcrypt codec" {
 }
 
 test "bcrypt crypt format" {
+    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     var hash_options = HashOptions{
         .params = .{ .rounds_log = 5 },
         .encoding = .crypt,
@@ -803,6 +808,8 @@ test "bcrypt crypt format" {
 }
 
 test "bcrypt phc format" {
+    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     var hash_options = HashOptions{
         .params = .{ .rounds_log = 5 },
         .encoding = .phc,

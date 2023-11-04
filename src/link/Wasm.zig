@@ -507,7 +507,7 @@ pub fn openPath(allocator: Allocator, sub_path: []const u8, options: link.Option
     }
 
     // if (!options.strip and options.module != null) {
-    //     wasm_bin.dwarf = Dwarf.init(allocator, &wasm_bin.base, options.target);
+    //     wasm_bin.dwarf = Dwarf.init(allocator, &wasm_bin.base, .dwarf32);
     //     try wasm_bin.initDebugSections();
     // }
 
@@ -1702,25 +1702,37 @@ pub fn getDeclVAddr(
     return target_symbol_index;
 }
 
-pub fn lowerAnonDecl(wasm: *Wasm, decl_val: InternPool.Index, src_loc: Module.SrcLoc) !codegen.Result {
+pub fn lowerAnonDecl(
+    wasm: *Wasm,
+    decl_val: InternPool.Index,
+    explicit_alignment: Alignment,
+    src_loc: Module.SrcLoc,
+) !codegen.Result {
     const gop = try wasm.anon_decls.getOrPut(wasm.base.allocator, decl_val);
-    if (gop.found_existing) {
-        return .ok;
+    if (!gop.found_existing) {
+        const mod = wasm.base.options.module.?;
+        const ty = mod.intern_pool.typeOf(decl_val).toType();
+        const tv: TypedValue = .{ .ty = ty, .val = decl_val.toValue() };
+        var name_buf: [32]u8 = undefined;
+        const name = std.fmt.bufPrint(&name_buf, "__anon_{d}", .{
+            @intFromEnum(decl_val),
+        }) catch unreachable;
+
+        switch (try wasm.lowerConst(name, tv, src_loc)) {
+            .ok => |atom_index| wasm.anon_decls.values()[gop.index] = atom_index,
+            .fail => |em| return .{ .fail = em },
+        }
     }
 
-    const mod = wasm.base.options.module.?;
-    const ty = mod.intern_pool.typeOf(decl_val).toType();
-    const tv: TypedValue = .{ .ty = ty, .val = decl_val.toValue() };
-    const name = try std.fmt.allocPrintZ(wasm.base.allocator, "__anon_{d}", .{@intFromEnum(decl_val)});
-    defer wasm.base.allocator.free(name);
-
-    switch (try wasm.lowerConst(name, tv, src_loc)) {
-        .ok => |atom_index| {
-            gop.value_ptr.* = atom_index;
-            return .ok;
+    const atom = wasm.getAtomPtr(wasm.anon_decls.values()[gop.index]);
+    atom.alignment = switch (atom.alignment) {
+        .none => explicit_alignment,
+        else => switch (explicit_alignment) {
+            .none => atom.alignment,
+            else => atom.alignment.maxStrict(explicit_alignment),
         },
-        .fail => |em| return .{ .fail = em },
-    }
+    };
+    return .ok;
 }
 
 pub fn getAnonDeclVAddr(wasm: *Wasm, decl_val: InternPool.Index, reloc_info: link.File.RelocInfo) !u64 {
@@ -1774,19 +1786,26 @@ pub fn deleteDeclExport(wasm: *Wasm, decl_index: Module.Decl.Index) void {
     }
 }
 
-pub fn updateDeclExports(
+pub fn updateExports(
     wasm: *Wasm,
     mod: *Module,
-    decl_index: Module.Decl.Index,
+    exported: Module.Exported,
     exports: []const *Module.Export,
 ) !void {
     if (build_options.skip_non_native and builtin.object_format != .wasm) {
         @panic("Attempted to compile for object format that was disabled by build configuration");
     }
-    if (wasm.llvm_object) |llvm_object| return llvm_object.updateDeclExports(mod, decl_index, exports);
+    if (wasm.llvm_object) |llvm_object| return llvm_object.updateExports(mod, exported, exports);
 
     if (wasm.base.options.emit == null) return;
 
+    const decl_index = switch (exported) {
+        .decl_index => |i| i,
+        .value => |val| {
+            _ = val;
+            @panic("TODO: implement Wasm linker code for exporting a constant value");
+        },
+    };
     const decl = mod.declPtr(decl_index);
     const atom_index = try wasm.getOrCreateAtomForDecl(decl_index);
     const atom = wasm.getAtom(atom_index);
@@ -1804,7 +1823,19 @@ pub fn updateDeclExports(
             continue;
         }
 
-        const exported_atom_index = try wasm.getOrCreateAtomForDecl(exp.exported_decl);
+        const exported_decl_index = switch (exp.exported) {
+            .value => {
+                try mod.failed_exports.putNoClobber(gpa, exp, try Module.ErrorMsg.create(
+                    gpa,
+                    decl.srcLoc(mod),
+                    "Unimplemented: exporting a named constant value",
+                    .{},
+                ));
+                continue;
+            },
+            .decl_index => |i| i,
+        };
+        const exported_atom_index = try wasm.getOrCreateAtomForDecl(exported_decl_index);
         const exported_atom = wasm.getAtom(exported_atom_index);
         const export_name = try wasm.string_table.put(wasm.base.allocator, mod.intern_pool.stringToSlice(exp.opts.name));
         const sym_loc = exported_atom.symbolLoc();
@@ -2340,7 +2371,7 @@ fn setupErrorsLen(wasm: *Wasm) !void {
         atom.deinit(wasm);
         break :blk index;
     } else new_atom: {
-        const atom_index = @as(Atom.Index, @intCast(wasm.managed_atoms.items.len));
+        const atom_index: Atom.Index = @intCast(wasm.managed_atoms.items.len);
         try wasm.symbol_atom.put(wasm.base.allocator, loc, atom_index);
         try wasm.managed_atoms.append(wasm.base.allocator, undefined);
         break :new_atom atom_index;
@@ -2349,7 +2380,7 @@ fn setupErrorsLen(wasm: *Wasm) !void {
     atom.* = Atom.empty;
     atom.sym_index = loc.index;
     atom.size = 2;
-    try atom.code.writer(wasm.base.allocator).writeIntLittle(u16, @as(u16, @intCast(errors_len)));
+    try atom.code.writer(wasm.base.allocator).writeInt(u16, @intCast(errors_len), .little);
 
     try wasm.parseAtom(atom_index, .{ .data = .read_only });
 }
@@ -3120,7 +3151,7 @@ fn populateErrorNameTable(wasm: *Wasm) !void {
         const offset = @as(u32, @intCast(atom.code.items.len));
         // first we create the data for the slice of the name
         try atom.code.appendNTimes(wasm.base.allocator, 0, 4); // ptr to name, will be relocated
-        try atom.code.writer(wasm.base.allocator).writeIntLittle(u32, len - 1);
+        try atom.code.writer(wasm.base.allocator).writeInt(u32, len - 1, .little);
         // create relocation to the error name
         try atom.relocs.append(wasm.base.allocator, .{
             .index = names_atom.sym_index,
@@ -4255,11 +4286,11 @@ fn emitInit(writer: anytype, init_expr: std.wasm.InitExpression) !void {
         },
         .f32_const => |val| {
             try writer.writeByte(std.wasm.opcode(.f32_const));
-            try writer.writeIntLittle(u32, @as(u32, @bitCast(val)));
+            try writer.writeInt(u32, @bitCast(val), .little);
         },
         .f64_const => |val| {
             try writer.writeByte(std.wasm.opcode(.f64_const));
-            try writer.writeIntLittle(u64, @as(u64, @bitCast(val)));
+            try writer.writeInt(u64, @bitCast(val), .little);
         },
         .global_get => |val| {
             try writer.writeByte(std.wasm.opcode(.global_get));

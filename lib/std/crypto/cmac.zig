@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const crypto = std.crypto;
 const mem = std.mem;
 
@@ -75,7 +76,7 @@ pub fn Cmac(comptime BlockCipher: type) type {
 
         fn double(l: Block) Block {
             const Int = std.meta.Int(.unsigned, block_length * 8);
-            const l_ = mem.readIntBig(Int, &l);
+            const l_ = mem.readInt(Int, &l, .big);
             const l_2 = switch (block_length) {
                 8 => (l_ << 1) ^ (0x1b & -%(l_ >> 63)), // mod x^64 + x^4 + x^3 + x + 1
                 16 => (l_ << 1) ^ (0x87 & -%(l_ >> 127)), // mod x^128 + x^7 + x^2 + x + 1
@@ -84,7 +85,7 @@ pub fn Cmac(comptime BlockCipher: type) type {
                 else => @compileError("unsupported block length"),
             };
             var l2: Block = undefined;
-            mem.writeIntBig(Int, &l2, l_2);
+            mem.writeInt(Int, &l2, l_2, .big);
             return l2;
         }
     };
@@ -93,6 +94,8 @@ pub fn Cmac(comptime BlockCipher: type) type {
 const testing = std.testing;
 
 test "CmacAes128 - Example 1: len = 0" {
+    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     const key = [_]u8{
         0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c,
     };
@@ -106,6 +109,8 @@ test "CmacAes128 - Example 1: len = 0" {
 }
 
 test "CmacAes128 - Example 2: len = 16" {
+    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     const key = [_]u8{
         0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c,
     };
@@ -121,6 +126,8 @@ test "CmacAes128 - Example 2: len = 16" {
 }
 
 test "CmacAes128 - Example 3: len = 40" {
+    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     const key = [_]u8{
         0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c,
     };
@@ -138,6 +145,8 @@ test "CmacAes128 - Example 3: len = 40" {
 }
 
 test "CmacAes128 - Example 4: len = 64" {
+    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     const key = [_]u8{
         0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c,
     };

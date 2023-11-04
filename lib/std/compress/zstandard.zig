@@ -201,7 +201,7 @@ pub fn DecompressStream(
                 if (block_header.last_block) {
                     self.state = .LastBlock;
                     if (self.frame_context.has_checksum) {
-                        const checksum = source_reader.readIntLittle(u32) catch
+                        const checksum = source_reader.readInt(u32, .little) catch
                             return error.MalformedFrame;
                         if (comptime options.verify_checksum) {
                             if (self.frame_context.hasher_opt) |*hasher| {
@@ -219,9 +219,7 @@ pub fn DecompressStream(
             }
 
             const size = @min(self.buffer.len(), buffer.len);
-            for (0..size) |i| {
-                buffer[i] = self.buffer.read().?;
-            }
+            self.buffer.readFirstAssumeLength(buffer, size);
             if (self.state == .LastBlock and self.buffer.len() == 0) {
                 self.state = .NewFrame;
                 self.allocator.free(self.literal_fse_buffer);
@@ -266,6 +264,8 @@ fn testReader(data: []const u8, comptime expected: []const u8) !void {
 }
 
 test "zstandard decompression" {
+    if (@import("builtin").zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     const uncompressed = @embedFile("testdata/rfc8478.txt");
     const compressed3 = @embedFile("testdata/rfc8478.txt.zst.3");
     const compressed19 = @embedFile("testdata/rfc8478.txt.zst.19");

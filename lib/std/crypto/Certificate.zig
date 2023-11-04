@@ -624,6 +624,8 @@ pub fn parseTimeDigits(text: *const [2]u8, min: u8, max: u8) !u8 {
 }
 
 test parseTimeDigits {
+    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     const expectEqual = std.testing.expectEqual;
     try expectEqual(@as(u8, 0), try parseTimeDigits("00", 0, 99));
     try expectEqual(@as(u8, 99), try parseTimeDigits("99", 0, 99));
@@ -645,6 +647,8 @@ pub fn parseYear4(text: *const [4]u8) !u16 {
 }
 
 test parseYear4 {
+    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
+
     const expectEqual = std.testing.expectEqual;
     try expectEqual(@as(u16, 0), try parseYear4("0000"));
     try expectEqual(@as(u16, 9999), try parseYear4("9999"));
@@ -1071,7 +1075,7 @@ pub const rsa = struct {
             // Reject modulus below 512 bits.
             // 512-bit RSA was factored in 1999, so this limit barely means anything,
             // but establish some limit now to ratchet in what we can.
-            const _n = Modulus.fromBytes(modulus_bytes, .Big) catch return error.CertificatePublicKeyInvalid;
+            const _n = Modulus.fromBytes(modulus_bytes, .big) catch return error.CertificatePublicKeyInvalid;
             if (_n.bits() < 512) return error.CertificatePublicKeyInvalid;
 
             // Exponent must be odd and greater than 2.
@@ -1081,7 +1085,7 @@ pub const rsa = struct {
             // Windows commonly does.
             // [1] https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-rsapubkey
             if (pub_bytes.len > 4) return error.CertificatePublicKeyInvalid;
-            const _e = Fe.fromBytes(_n, pub_bytes, .Big) catch return error.CertificatePublicKeyInvalid;
+            const _e = Fe.fromBytes(_n, pub_bytes, .big) catch return error.CertificatePublicKeyInvalid;
             if (!_e.isOdd()) return error.CertificatePublicKeyInvalid;
             const e_v = _e.toPrimitive(u32) catch return error.CertificatePublicKeyInvalid;
             if (e_v < 2) return error.CertificatePublicKeyInvalid;
@@ -1112,10 +1116,12 @@ pub const rsa = struct {
     };
 
     fn encrypt(comptime modulus_len: usize, msg: [modulus_len]u8, public_key: PublicKey) ![modulus_len]u8 {
-        const m = Fe.fromBytes(public_key.n, &msg, .Big) catch return error.MessageTooLong;
+        const m = Fe.fromBytes(public_key.n, &msg, .big) catch return error.MessageTooLong;
         const e = public_key.n.powPublic(m, public_key.e) catch unreachable;
         var res: [modulus_len]u8 = undefined;
-        e.toBytes(&res, .Big) catch unreachable;
+        e.toBytes(&res, .big) catch unreachable;
         return res;
     }
 };
+
+const builtin = @import("builtin");

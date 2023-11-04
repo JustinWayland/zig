@@ -13,8 +13,6 @@ const readers = @import("../readers.zig");
 
 const decodeFseTable = @import("fse.zig").decodeFseTable;
 
-const readInt = std.mem.readIntLittle;
-
 pub const Error = error{
     BlockSizeOverMaximum,
     MalformedBlockSize,
@@ -311,8 +309,8 @@ pub const DecodeState = struct {
         try self.decodeLiteralsRingBuffer(dest, sequence.literal_length);
         const copy_start = dest.write_index + dest.data.len - sequence.offset;
         const copy_slice = dest.sliceAt(copy_start, sequence.match_length);
-        for (copy_slice.first) |b| dest.writeAssumeCapacity(b);
-        for (copy_slice.second) |b| dest.writeAssumeCapacity(b);
+        dest.writeSliceForwardsAssumeCapacity(copy_slice.first);
+        dest.writeSliceForwardsAssumeCapacity(copy_slice.second);
         self.written_count += sequence.match_length;
     }
 
@@ -1033,9 +1031,9 @@ fn decodeStreams(size_format: u2, stream_data: []const u8) !LiteralsSection.Stre
 
     if (stream_data.len < 6) return error.MalformedLiteralsSection;
 
-    const stream_1_length = @as(usize, readInt(u16, stream_data[0..2]));
-    const stream_2_length = @as(usize, readInt(u16, stream_data[2..4]));
-    const stream_3_length = @as(usize, readInt(u16, stream_data[4..6]));
+    const stream_1_length: usize = std.mem.readInt(u16, stream_data[0..2], .little);
+    const stream_2_length: usize = std.mem.readInt(u16, stream_data[2..4], .little);
+    const stream_3_length: usize = std.mem.readInt(u16, stream_data[4..6], .little);
 
     const stream_1_start = 6;
     const stream_2_start = stream_1_start + stream_1_length;
