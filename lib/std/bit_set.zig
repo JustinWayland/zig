@@ -859,6 +859,18 @@ pub const DynamicBitSetUnmanaged = struct {
         self.masks[maskIndex(index)] &= ~maskBit(index);
     }
 
+    /// Set all bits to 0.
+    pub fn unsetAll(self: *Self) void {
+        const masks_len = numMasks(self.bit_length);
+        @memset(self.masks[0..masks_len], 0);
+    }
+
+    /// Set all bits to 1.
+    pub fn setAll(self: *Self) void {
+        const masks_len = numMasks(self.bit_length);
+        @memset(self.masks[0..masks_len], std.math.maxInt(MaskInt));
+    }
+
     /// Flips a specific bit in the bit set
     pub fn toggle(self: *Self, index: usize) void {
         assert(index < self.bit_length);
@@ -1636,7 +1648,6 @@ fn testStaticBitSet(comptime Set: type) !void {
 
 test "IntegerBitSet" {
     if (builtin.zig_backend == .stage2_c) return error.SkipZigTest;
-    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
 
     try testStaticBitSet(IntegerBitSet(0));
     try testStaticBitSet(IntegerBitSet(1));
@@ -1649,8 +1660,6 @@ test "IntegerBitSet" {
 }
 
 test "ArrayBitSet" {
-    if (builtin.zig_backend == .stage2_x86_64) return error.SkipZigTest;
-
     inline for (.{ 0, 1, 2, 31, 32, 33, 63, 64, 65, 254, 500, 3000 }) |size| {
         try testStaticBitSet(ArrayBitSet(u8, size));
         try testStaticBitSet(ArrayBitSet(u16, size));
