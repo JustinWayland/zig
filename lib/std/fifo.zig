@@ -269,7 +269,7 @@ pub fn LinearFifo(
             return slice;
         }
 
-        /// Update the tail location of the buffer (usually follows use of `writable`/`writableWithSize`)
+        /// Update the tail location of the buffer (usually follows use of `writableSlice`/`writableWithSize`)
         pub fn update(self: *Self, count: usize) void {
             assert(self.count + count <= self.buf.len);
             self.count += count;
