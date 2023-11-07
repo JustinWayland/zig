@@ -227,7 +227,7 @@ pub fn LinearFifo(
             return dst.len - dst_left.len;
         }
 
-        /// Same as `read` except it returns an error union
+        /// Same as `read` except it returns an error union.
         /// The purpose of this function existing is to match `std.io.Reader` API.
         fn readFn(self: *Self, dest: []u8) error{}!usize {
             return self.read(dest);
