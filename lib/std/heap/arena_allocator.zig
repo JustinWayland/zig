@@ -9,7 +9,7 @@ pub const ArenaAllocator = struct {
     child_allocator: Allocator,
     state: State,
 
-    /// Inner state of ArenaAllocator. Can be stored rather than the entire ArenaAllocator
+    /// Inner state of `ArenaAllocator`. Can be stored rather than the entire `ArenaAllocator`
     /// as a memory-saving optimization.
     pub const State = struct {
         buffer_list: std.SinglyLinkedList(usize) = .{},
@@ -60,7 +60,7 @@ pub const ArenaAllocator = struct {
         /// This will pre-heat the arena for future allocations by allocating a
         /// large enough buffer for all previously done allocations.
         /// Preheating will speed up the allocation process by invoking the backing allocator
-        /// less often than before. If `reset()` is used in a loop, this means that after the
+        /// less often than before. If `reset` is used in a loop, this means that after the
         /// biggest operation, no memory allocations are performed anymore.
         retain_capacity,
         /// This is the same as `retain_capacity`, but the memory will be shrunk to
