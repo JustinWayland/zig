@@ -201,7 +201,7 @@ pub const File = struct {
     };
 
     /// Upon success, the stream is in an uninitialized state. To continue using it,
-    /// you must use the open() function.
+    /// you must use the `open` function.
     pub fn close(self: File) void {
         if (is_windows) {
             windows.CloseHandle(self.handle);
@@ -635,11 +635,11 @@ pub const File = struct {
             return self.inner.modified();
         }
 
-        /// Returns the time the file was created in nanoseconds since UTC 1970-01-01
-        /// On Windows, this cannot return null
-        /// On Linux, this returns null if the filesystem does not support creation times, or if the kernel is older than 4.11
-        /// On Unices, this returns null if the filesystem or OS does not support creation times
-        /// On MacOS, this returns the ctime if the filesystem does not support creation times; this is insanity, and yet another reason to hate on Apple
+        /// Returns the time the file was created in nanoseconds since UTC 1970-01-01.
+        /// On Windows, this cannot return `null`.
+        /// On Linux, this returns `null` if the filesystem does not support creation times, or if the kernel is older than 4.11.
+        /// On Unices, this returns `null` if the filesystem or OS does not support creation times.
+        /// On MacOS, this returns the ctime if the filesystem does not support creation times; this is insanity, and yet another reason to hate on Apple.
         pub fn created(self: Self) ?i128 {
             return self.inner.created();
         }
@@ -707,7 +707,7 @@ pub const File = struct {
         }
 
         /// Returns the time the file was created in nanoseconds since UTC 1970-01-01.
-        /// Returns null if this is not supported by the OS or filesystem
+        /// Returns `null` if this is not supported by the OS or filesystem
         pub fn created(self: Self) ?i128 {
             if (!@hasDecl(@TypeOf(self.stat), "birthtime")) return null;
             const birthtime = self.stat.birthtime();
@@ -773,7 +773,7 @@ pub const File = struct {
         }
 
         /// Returns the time the file was created in nanoseconds since UTC 1970-01-01.
-        /// Returns null if this is not supported by the filesystem, or on kernels before than version 4.11
+        /// Returns `null` if this is not supported by the filesystem, or on kernels before than version 4.11
         pub fn created(self: Self) ?i128 {
             if (self.statx.mask & os.linux.STATX_BTIME == 0) return null;
             return @as(i128, self.statx.btime.tv_sec) * std.time.ns_per_s + self.statx.btime.tv_nsec;
@@ -826,7 +826,7 @@ pub const File = struct {
         }
 
         /// Returns the time the file was created in nanoseconds since UTC 1970-01-01.
-        /// This never returns null, only returning an optional for compatibility with other OSes
+        /// This never returns `null`, only returning an optional for compatibility with other OSes
         pub fn created(self: Self) ?i128 {
             return self.creation_time;
         }
