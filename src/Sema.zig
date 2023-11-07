@@ -7253,7 +7253,15 @@ fn analyzeCall(
             }),
             .func => func_val.toIntern(),
             .ptr => |ptr| switch (ptr.addr) {
-                .decl => |decl| mod.declPtr(decl).val.toIntern(),
+                .decl => |decl| blk: {
+                    const func_val_ptr = mod.declPtr(decl).val.toIntern();
+                    const intern_index = mod.intern_pool.indexToKey(func_val_ptr);
+                    if (intern_index == .extern_func or (intern_index == .variable and intern_index.variable.is_extern))
+                        return sema.fail(block, call_src, "{s} call of extern function pointer", .{
+                            @as([]const u8, if (is_comptime_call) "comptime" else "inline"),
+                        });
+                    break :blk func_val_ptr;
+                },
                 else => {
                     assert(callee_ty.isPtrAtRuntime(mod));
                     return sema.fail(block, call_src, "{s} call of function pointer", .{
@@ -17627,7 +17635,7 @@ fn zirTypeInfo(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!Ai
                     const name = if (struct_type.fieldName(ip, i).unwrap()) |name_nts|
                         try sema.arena.dupe(u8, ip.stringToSlice(name_nts))
                     else
-                        try std.fmt.allocPrintZ(gpa, "{d}", .{i});
+                        try std.fmt.allocPrintZ(sema.arena, "{d}", .{i});
                     const field_ty = struct_type.field_types.get(ip)[i].toType();
                     const field_init = struct_type.fieldInit(ip, i);
                     const field_is_comptime = struct_type.fieldIsComptime(ip, i);
@@ -23488,6 +23496,7 @@ fn zirSelect(sema: *Sema, block: *Block, extended: Zir.Inst.Extended.InstData) C
                 if (b_val.isUndef(mod)) return mod.undefRef(vec_ty);
 
                 const elems = try sema.gpa.alloc(InternPool.Index, vec_len);
+                defer sema.gpa.free(elems);
                 for (elems, 0..) |*elem, i| {
                     const pred_elem_val = try pred_val.elemValue(mod, i);
                     const should_choose_a = pred_elem_val.toBool();
@@ -25573,7 +25582,7 @@ fn explainWhyTypeIsNotExtern(
                     try mod.errNoteNonLazy(src_loc, msg, "pointer to comptime-only type '{}'", .{pointee_ty.fmt(sema.mod)});
                     try sema.explainWhyTypeIsComptime(msg, src_loc, ty);
                 }
-                try sema.explainWhyTypeIsNotExtern(msg, src_loc, pointee_ty, position);
+                try sema.explainWhyTypeIsNotExtern(msg, src_loc, pointee_ty, .other);
             }
         },
         .Void => try mod.errNoteNonLazy(src_loc, msg, "'void' is a zero bit type; for C 'void' use 'anyopaque'", .{}),
