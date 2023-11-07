@@ -91,7 +91,7 @@ pub const RwLock = struct {
     }
 
     /// Must be called when not locked. Not thread safe.
-    /// All calls to acquire() and release() must complete before calling deinit().
+    /// All calls to `acquire` and `release` must complete before calling `deinit`.
     pub fn deinit(self: *RwLock) void {
         assert(self.shared_state == .Unlocked);
         while (self.writer_queue.get()) |node| resume node.data;
