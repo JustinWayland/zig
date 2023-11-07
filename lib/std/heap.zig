@@ -412,9 +412,9 @@ pub const FixedBufferAllocator = struct {
         return sliceContainsSlice(self.buffer, slice);
     }
 
-    /// NOTE: this will not work in all cases, if the last allocation had an adjusted_index
+    /// NOTE: this will not work in all cases, if the last allocation had an `adjusted_index`
     ///       then we won't be able to determine what the last allocation was.  This is because
-    ///       the alignForward operation done in alloc is not reversible.
+    ///       the `alignForward` operation done in `alloc` is not reversible.
     pub fn isLastAllocation(self: *FixedBufferAllocator, buf: []u8) bool {
         return buf.ptr + buf.len == self.buffer.ptr + self.end_index;
     }
