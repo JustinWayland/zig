@@ -204,7 +204,7 @@ pub const AtomicFile = struct {
         }
     }
 
-    /// Always call deinit, even after a successful finish().
+    /// Always call deinit, even after a successful `finish`.
     pub fn deinit(self: *AtomicFile) void {
         if (self.file_open) {
             self.file.close();
@@ -1459,7 +1459,7 @@ pub const Dir = struct {
         try os.mkdiratW(self.fd, sub_path, default_new_dir_mode);
     }
 
-    /// Calls makeDir iteratively to make an entire path
+    /// Calls `makeDir` iteratively to make an entire path
     /// (i.e. creating any parent directories that do not exist).
     /// Returns success if the path already exists and is a directory.
     /// This function is not atomic, and if it returns an error, the file system may
@@ -1484,7 +1484,7 @@ pub const Dir = struct {
         }
     }
 
-    /// Calls makeOpenDirAccessMaskW iteratively to make an entire path
+    /// Calls `makeOpenDirAccessMaskW` iteratively to make an entire path
     /// (i.e. creating any parent directories that do not exist).
     /// Opens the dir if the path already exists and is a directory.
     /// This function is not atomic, and if it returns an error, the file system may
@@ -1994,7 +1994,7 @@ pub const Dir = struct {
     pub const RenameError = os.RenameError;
 
     /// Change the name or location of a file or directory.
-    /// If new_sub_path already exists, it will be replaced.
+    /// If `new_sub_path` already exists, it will be replaced.
     /// Renaming a file over an existing directory or a directory
     /// over an existing file will fail with `error.IsDir` or `error.NotDir`
     pub fn rename(self: Dir, old_sub_path: []const u8, new_sub_path: []const u8) RenameError!void {
@@ -3169,7 +3169,7 @@ pub fn selfExeDirPathAlloc(allocator: Allocator) ![]u8 {
 }
 
 /// Get the directory path that contains the current executable.
-/// Returned value is a slice of out_buffer.
+/// Returned value is a slice of `out_buffer`.
 pub fn selfExeDirPath(out_buffer: []u8) SelfExePathError![]const u8 {
     const self_exe_path = try selfExePath(out_buffer);
     // Assume that the OS APIs return absolute paths, and therefore dirname
