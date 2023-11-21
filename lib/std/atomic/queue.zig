@@ -5,8 +5,8 @@ const expect = std.testing.expect;
 
 /// Many producer, many consumer, non-allocating, thread-safe.
 /// Uses a mutex to protect access.
-/// The queue does not manage ownership and the user is responsible to
-/// manage the storage of the nodes.
+/// The queue does not manage ownership and the user is responsible for
+/// managing the storage of the nodes.
 pub fn Queue(comptime T: type) type {
     return struct {
         head: ?*Node,
